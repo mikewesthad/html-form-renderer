@@ -1,7 +1,6 @@
-p5.disableFriendlyErrors = true;
+p5.disableFriendlyErrors = true; // For faster performance
 
-var canvas;
-var capture;
+var canvas, capture, loadingSpinner;
 var videoWidth = null;
 var videoHeight = null;
 var threshold = 255 / 2;
@@ -9,13 +8,13 @@ var drawDebug = false;
 var isLoaded = false;
 
 // Sampling to reduce number of pixels that are processed from the capture
-var sampleSize = 6;
+var sampleSize = 8;
 
-// Display scaling, 1px of the image = 12px scrollbar  
+// Display scaling, 1px of the image = 12px scrollbar
 var displaySize = 12;
 
 // Number of scrollbars to use for rendering
-var scrollRows = 8; // Set number of rows to a fixed number ahead of time
+var scrollRows = 6; // Set number of rows to a fixed number ahead of time
 var scrollCols = null; // Columns determined by num samples in video width
 var scrollbars = [];
 
@@ -41,7 +40,7 @@ function setup() {
 
     // Resize the canvas so that it can be centered
     resizeCanvas(
-      videoWidth * displayScale, 
+      videoWidth * displayScale,
       videoHeight * displayScale
     );
 
@@ -56,7 +55,16 @@ function setup() {
 
     // Everything is in order, start the draw loop
     isLoaded = true;
-  });  
+  });
+}
+
+function windowResized() {
+    // Center the scroll frame container again
+    var displayScale = displaySize / sampleSize; // Video to screen coords
+    select("#scroll-frame").position(
+      (windowWidth / 2) - (scrollCols * displaySize / 2),
+      (windowHeight / 2) - (videoHeight * displayScale / 2)
+    );
 }
 
 function initScrollbars() {
@@ -69,14 +77,14 @@ function initScrollbars() {
       //  - Scrollbar "pixels" are displaySize wide
       //  - The height of a scrollbar is determined by the number of rows
       var scrollbar = createScrollbar(
-        c * displaySize, 
-        r * rowHeight, 
-        displaySize, 
+        c * displaySize,
+        r * rowHeight,
+        displaySize,
         rowHeight
       );
 
       // Store the scrollbar in a 1D array
-      scrollbars.push(scrollbar); 
+      scrollbars.push(scrollbar);
     }
   }
 }
@@ -96,8 +104,8 @@ function renderScrollbarFrame() {
       // Find the index of the scrollbar in the 1D scrollbars array
       var i = (r * scrollCols) + c;
 
-      // Calculate scrollbar's scroll offset and size so that it matches the 
-      // rectangle 
+      // Calculate scrollbar's scroll offset and size so that it matches the
+      // rectangle
       var offsetFraction = (rectangle.y - yStart) / h;
       var heightFraction = rectangle.h / h;
       renderToScrollbar(i, offsetFraction, heightFraction);
@@ -107,7 +115,7 @@ function renderScrollbarFrame() {
 
 function renderToScrollbar(i, fractionOffset, fractionSize) {
   // If the size fraction is 1, the scrollbar won't show since all of the
-  // content is visible. Use this "feature" to handle drawing a full scrollbar 
+  // content is visible. Use this "feature" to handle drawing a full scrollbar
   // or an empty scrollbar.
   if (fractionSize >= 1) fractionSize = 0.99;
   else if (fractionSize <= 0) fractionSize = 1;
@@ -117,24 +125,24 @@ function renderToScrollbar(i, fractionOffset, fractionSize) {
 
   // Inner div needs to be larger than the outer div to get a scrollbar thumb.
   // The size of this div needs to be larger, the smaller the thumb should be.
-  var innerSize = (1 / fractionSize) * rowHeight; 
+  var innerSize = (1 / fractionSize) * rowHeight;
 
   // The scroll position is how far down the inner div we should be scrolled, so
   // this needs to be a fraction of the inner div's size
   var scrollPos = fractionOffset * innerSize;
 
-  scrollbars[i].content.size(displaySize, innerSize);  
+  scrollbars[i].content.size(displaySize, innerSize);
   scrollbars[i].container.elt.scrollTop = scrollPos;
 }
 
-function createScrollbar(x, y, w, h) {  
+function createScrollbar(x, y, w, h) {
   var scrollContainer = createElement("div");
   scrollContainer.attribute("class", "scroll-container");
   var scrollContent = createElement("div");
   scrollContent.attribute("class", "scroll-content");
   scrollContent.parent(scrollContainer);
   scrollContainer.parent("#scroll-frame");
-  scrollContainer.size(w, h);  
+  scrollContainer.size(w, h);
   scrollContainer.position(x, y);
   return {
     container: scrollContainer,
@@ -151,7 +159,7 @@ function draw() {
     // Debug drawing
     if (drawDebug) {
       clear();
-      drawBinaryDebug(200, 0, 255, 50);      
+      drawBinaryDebug(200, 0, 255, 50);
     }
 
     renderScrollbarFrame();
@@ -184,7 +192,7 @@ function fitScrollbar(sectionX, sectionY, sectionHeight) {
 
     } else {
 
-      // Black pixel     
+      // Black pixel
       if ((rectangle.y === null) || (rectangle.h === null)) {
         // First pixel in rectangle
         rectangle.y = y;
@@ -248,10 +256,10 @@ function keyPressed() {
 
 function keyReleased() {
   if (key.toLowerCase() === "d") {
-    drawDebug = !drawDebug; 
-    if (drawDebug) {     
+    drawDebug = !drawDebug;
+    if (drawDebug) {
       canvas.elt.style.display = "";
-    } else {      
+    } else {
       canvas.elt.style.display = "none";
     }
   }
